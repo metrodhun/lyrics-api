@@ -14,7 +14,6 @@ export default {
       });
     }
 
-    // Helper function for JSON responses with CORS
     function jsonResponse(data, status = 200) {
       const headers = {
         "Content-Type": "application/json",
@@ -26,46 +25,54 @@ export default {
     }
 
     try {
-      // --- POST /lyrics: Add new lyrics ---
-      if (url.pathname === "/lyrics" && request.method === "POST") {
+      // --- POST /search : add/update lyrics ---
+      if (url.pathname === "/search" && request.method === "POST") {
         const { title, artist, image, content } = await request.json();
 
         if (!title || !artist || !content) {
           return jsonResponse({ error: "Fields 'title', 'artist', 'content' are required" }, 400);
         }
 
-        await env.DB.prepare(
-          "INSERT INTO lyrics (title, artist, image, content) VALUES (?, ?, ?, ?)"
-        ).bind(title, artist, image || null, content).run();
+        // Check if the title already exists
+        const existing = await env.DB.prepare(
+          "SELECT id, content FROM lyrics WHERE LOWER(title) = ?"
+        ).bind(title.toLowerCase()).first();
 
-        return jsonResponse({ message: "Lyrics added successfully", title, artist }, 200);
+        const now = new Date().toISOString();
+
+        if (existing) {
+          // If content is different, update the row
+          if (existing.content !== content) {
+            await env.DB.prepare(
+              "UPDATE lyrics SET artist = ?, image = ?, content = ?, updated_at = ? WHERE id = ?"
+            ).bind(artist, image || null, content, now, existing.id).run();
+
+            return jsonResponse({ message: "Lyrics updated successfully", title, artist, updated_at: now });
+          } else {
+            // Content unchanged
+            return jsonResponse({ message: "Lyrics already up to date", title, artist });
+          }
+        } else {
+          // Insert new row
+          await env.DB.prepare(
+            "INSERT INTO lyrics (title, artist, image, content, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+          ).bind(title, artist, image || null, content, now, now).run();
+
+          return jsonResponse({ message: "Lyrics added successfully", title, artist, published_at: now, updated_at: now });
+        }
       }
 
-      // --- GET /lyrics/:title ---
-      if (url.pathname.startsWith("/lyrics/") && request.method === "GET") {
-        const title = url.pathname.replace("/lyrics/", "").toLowerCase();
-
-        const { results } = await env.DB.prepare(
-          "SELECT title, artist, image, content FROM lyrics WHERE LOWER(title) = ?"
-        ).bind(title).all();
-
-        if (results.length > 0) return jsonResponse(results[0]);
-        return jsonResponse({ error: "Lyrics not found" }, 404);
-      }
-
-      // --- GET /search?q=... ---
+      // --- GET /search?q=... : search lyrics ---
       if (url.pathname === "/search" && request.method === "GET") {
         const query = url.searchParams.get("q");
-        if (!query) {
-          return jsonResponse({ error: "Missing query parameter ?q=" }, 400);
-        }
+        if (!query) return jsonResponse({ error: "Missing query parameter ?q=" }, 400);
 
         const { results } = await env.DB.prepare(
-          "SELECT title, artist, image, substr(content,1,80) || '...' as snippet " +
-          "FROM lyrics WHERE LOWER(title) LIKE ? OR LOWER(artist) LIKE ? OR LOWER(content) LIKE ?"
+          "SELECT title, artist, image, content, published_at, updated_at FROM lyrics " +
+          "WHERE LOWER(title) LIKE ? OR LOWER(artist) LIKE ? OR LOWER(content) LIKE ?"
         )
-          .bind(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`)
-          .all();
+        .bind(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`)
+        .all();
 
         return jsonResponse({ query, results });
       }
