@@ -5,4 +5,4 @@ compatibility_date = "2023-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "lyrics-db"
-database_id = "<your-d1-id>"  # Will get from Cloudflare
+database_id = "e045426a-246b-47d1-87e9-8688ff8232b4"  # Will get from Cloudflare
