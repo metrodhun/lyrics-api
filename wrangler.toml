@@ -1,0 +1,8 @@
+name = "lyrics-api"
+main = "src/index.js"
+compatibility_date = "2023-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lyrics-db"
+database_id = "<your-d1-id>"  # Will get from Cloudflare
