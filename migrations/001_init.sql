@@ -7,6 +7,6 @@ CREATE TABLE lyrics (
 );
 
 INSERT INTO lyrics (title, artist, image, content) VALUES
-("Yesterday", "The Beatles", "https://example.com/yesterday.jpg", "Yesterday, alsl my troubles seemed so far away..."),
+("Yesterday", "The Beatles", "https://example.com/yesterday.jpg", "Yesterday, all my troubles seemed so far away..."),
 ("Hallelujah", "Leonard Cohen", "https://example.com/hallelujah.jpg", "Now I've heard there was a secret chord..."),
 ("Imagine", "John Lennon", "https://example.com/imagine.jpg", "Imagine all the people, living life in peace...");
